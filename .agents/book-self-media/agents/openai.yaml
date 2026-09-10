@@ -1,0 +1,4 @@
+interface:
+  display_name: "图书自媒体"
+  short_description: "核验图书资料并生成打分图、citation阅读树与知识结构图"
+  default_prompt: "使用 $book-self-media 为我整理一本书并生成完整的自媒体内容素材。"

@@ -1,0 +1,39 @@
+# Operating system metadata
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local editor and temporary files
+.idea/
+*.swp
+*.swo
+*~
+*.tmp
+*.log
+
+# Local credentials (keep example configuration templates)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Historical work, retained locally for reference
+/trial from Tong/
+
+# Font specimen images; keep the actual TTF files
+/references/思源黑体(Adobe版-CN)/*-JT*.jpg
+
+# Reproducible review derivatives; keep the three poster PNGs
+/试排/**/三图总览.png
+/试排/**/排版检查.json
+/试排/**/logo-white.png
