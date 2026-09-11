@@ -55,7 +55,16 @@ class Page:
             if tag in ('axis score','average','douban'):
                 bg=tuple(round(v*(1-22/255)+22) for v in bytes.fromhex(BG[1:]))
                 self.d.rectangle((bbox[0]-4*S,bbox[1]-4*S,bbox[2]+4*S,bbox[3]+4*S),fill=bg)
-            self.d.text(xy((xx,yy)),line,font=f,fill=fill,anchor='lt')
+            if align=='justify' and i<len(lines)-1 and len(line)>1:
+                gap=(width*S-self.d.textlength(line,font=f))/(len(line)-1)
+                cursor=xx*S
+                baseline=yy*S-f.getbbox(line,anchor='ls')[1]
+                for ch in line:
+                    self.d.text((round(cursor),round(baseline)),ch,font=f,fill=fill,anchor='ls')
+                    cursor+=self.d.textlength(ch,font=f)+gap
+                bbox=(round(xx*S),bbox[1],round((xx+width)*S),bbox[3])
+            else:
+                self.d.text(xy((xx,yy)),line,font=f,fill=fill,anchor='lt')
             if line: self.register(tuple(v/S for v in bbox),f'{tag}: {line}')
         return len(lines)*lh
     def cover(self,path,cx,y,width=None,height=None,tag='cover'):
@@ -89,41 +98,91 @@ class Page:
         assert not line_conflicts,(self.name,line_conflicts)
         self.im.resize((W,H),Image.Resampling.LANCZOS).save(BASE/f'{self.name}.png')
 
+def title_size(text,width=984):
+    # Ten full-width Chinese characters establish the shared visual anchor.
+    size=math.floor(width*S/10)/S
+    if len(text)>10:
+        size=min(size,size*width/(font(size,'Heavy').getlength(text)/S))
+    while font(size,'Heavy').getlength(text)/S>width:
+        size-=.1
+    return size
+
 def title(p,text):
-    used=p.text(text,48,54,984,80,'Heavy',tag='title')
-    assert used<=200, 'Title requires editorial shortening'
+    size=title_size(text)
+    p.text(text,48,54,984,size,'Heavy',align='center',tag='title')
+    REPORT['checks'].append({'title':text,'title_size':round(size,2),'centered':True})
 
 def association():
     p=Page('01_书籍联想图');title(p,C['association_title'])
-    main=p.cover(C['book']['cover'],540,590,width=360,tag='主书封面')
+    main_h=round(360*Image.open(BASE/C['book']['cover']).height/Image.open(BASE/C['book']['cover']).width)
+    main=p.cover(C['book']['cover'],540,round(720-main_h/2),width=360,tag='主书封面')
     # Four independent text/cover zones, with clear connection corridors.
     placements=[(190,285),(890,285),(190,970),(890,970)]
     rb=[]
     for b,(cx,y) in zip(C['related'],placements):
         r=p.cover(b['cover'],cx,y,height=250,tag=b['title']+'封面');rb.append(r)
-        p.text(b['title'],cx-155,y+269,310,26,align='center',tag='related title')
+        p.text(b['title'],cx-155,y+269,310,26,'Bold',align='center',tag='related title')
         p.text(b.get('reason_display',b['reason']),cx-155,y+312,310,26,align='center',lh=36,tag='reason')
-    p.text('人类简史',48,785,280,32,tag='main title')
-    p.text('尤瓦尔·赫拉利',48,836,280,32,tag='main author')
-    p.bezier((420,590),(380,530),(355,413),(rb[0][2],410))
-    p.bezier((660,590),(710,530),(725,413),(rb[1][0],410))
-    p.bezier((360,1025),(320,1025),(325,1120),(rb[2][2],1120))
-    p.bezier((720,1025),(760,1025),(755,1120),(rb[3][0],1120))
+    p.text(C['book']['title'],360,main[3]+22,360,32,'Bold',align='center',tag='main title')
+    p.text(C['book']['author'],360,main[3]+70,360,32,align='center',tag='main author')
+    p.bezier((420,main[1]),(380,420),(355,410),(rb[0][2],410))
+    p.bezier((660,main[1]),(710,420),(725,410),(rb[1][0],410))
+    p.bezier((360,880),(320,880),(325,1095),(rb[2][2],1095))
+    p.bezier((720,880),(760,880),(755,1095),(rb[3][0],1095))
     p.save()
+
+def arrow(p,a,b):
+    p.line([a,b],fill=BG,width=2)
+    angle=math.atan2(b[1]-a[1],b[0]-a[0])
+    for delta in [-.5,.5]:
+        p.line([b,(b[0]-9*math.cos(angle+delta),b[1]-9*math.sin(angle+delta))],fill=BG,width=2)
+
+def icon(p,kind,x,y):
+    # Consistent code-drawn line icons; no external font or image dependency.
+    d=p.d
+    if kind=='story':
+        d.rounded_rectangle(xy((x,y,x+36,y+26)),radius=5*S,outline=BG,width=2*S)
+        p.line([(x+9,y+26),(x+6,y+34),(x+20,y+26)],fill=BG)
+        for yy in [8,16]:p.line([(x+7,y+yy),(x+29,y+yy)],fill=BG)
+    elif kind=='plant':
+        p.line([(x+18,y+35),(x+18,y+2)],fill=BG)
+        for yy in [7,19]:
+            p.line([(x+18,y+yy+7),(x+3,y+yy),(x+8,y+yy+10),(x+18,y+yy+12)],fill=BG)
+            p.line([(x+18,y+yy),(x+32,y+yy-5),(x+29,y+yy+6),(x+18,y+yy+8)],fill=BG)
+    elif kind=='science':
+        p.line([(x+12,y),(x+24,y)],fill=BG)
+        p.line([(x+14,y),(x+14,y+12),(x+4,y+32),(x+32,y+32),(x+22,y+12),(x+22,y)],fill=BG)
+        p.line([(x+9,y+22),(x+27,y+22)],fill=BG)
+    else:
+        d.ellipse(xy((x+2,y+1,x+27,y+26)),outline=BG,width=2*S)
+        p.line([(x+24,y+24),(x+35,y+35)],fill=BG,width=3)
 
 def content():
     p=Page('02_内容要点图');title(p,C['book']['title'])
-    p.text(C['subtitle'],48,209,984,40,'Bold',tag='subtitle')
+    p.text(C['core_claim'],48,208,984,40,'Bold',align='center',tag='core claim')
+    count=len(C['modules']); assert 2<=count<=4
+    module_h=(1060-(count-1)*20)/count
     for i,m in enumerate(C['modules']):
-        y=305+i*270
-        p.d.rounded_rectangle(xy((48,y,1032,y+250)),radius=20*S,fill=WHITE)
-        p.text(f'{i+1:02d}',72,y+24,65,40,'Bold',fill=BG,tag='module number')
-        p.text(m['title'],151,y+24,850,40,'Bold',fill=BG,tag='module title')
-        p.line([(72,y+87),(1008,y+87)],fill='#CDDEEC',width=1)
-        for j,point in enumerate(m['points']):
-            yy=y+105+j*44
-            p.d.ellipse(xy((78,yy+12,86,yy+20)),fill=BG)
-            p.text(point,106,yy,900,32,fill=INK,tag='point')
+        y=305+i*(module_h+20)
+        p.d.rounded_rectangle(xy((48,y,1032,y+module_h)),radius=20*S,fill=WHITE)
+        icon(p,m['icon'],74,y+24)
+        p.text(f"{i+1:02d}  {m['heading']}",130,y+24,870,40,'Bold',fill=BG,tag='module title')
+        cells=m['diagram']['cells'];kind=m['diagram']['type'];count=len(cells)
+        widths={2:420,3:280};cw=widths[count]
+        starts={2:[72,588],3:[72,400,728]}[count]
+        for j,(x,cell) in enumerate(zip(starts,cells)):
+            p.d.rounded_rectangle(xy((x,y+88,x+cw,y+214)),radius=12*S,fill='#EEF5FB')
+            p.text(cell['title'],x+12,y+101,cw-24,32,'Bold',fill=BG,align='center',tag='concept')
+            p.text(cell['detail'],x+12,y+149,cw-24,26,fill=INK,align='center',lh=35,tag='detail')
+            if j<count-1:
+                left=x+cw;right=starts[j+1]
+                if kind=='sequence':arrow(p,(left+8,y+150),(right-8,y+150))
+                elif kind=='contrast':p.text('≠',left+10,y+135,right-left-20,32,'Bold',fill=BG,align='center',tag='contrast')
+                elif kind=='cycle':
+                    arrow(p,(left+8,y+142),(right-8,y+142))
+                    arrow(p,(right-8,y+164),(left+8,y+164))
+        if m.get('caption'):
+            p.text(m['caption'],72,y+222,936,26,fill=INK,align='center',tag='module caption')
     p.save()
 
 def logo():
@@ -142,13 +201,13 @@ def score():
     l=logo(); lw=64;lh=round(lw*l.height/l.width)
     l=l.resize((lw*S,lh*S),Image.Resampling.LANCZOS)
     p.im.paste(l,xy((24,53)),l);p.register((24,53,24+lw,53+lh),'logo')
-    used=p.text(C.get('intro_display',C['intro']),124,49,696,32,lh=42,tag='intro')
+    used=p.text(C.get('intro_display',C['intro']),124,49,696,32,align='justify',lh=42,tag='intro')
     assert used<=210, f'Intro too long: {used}'
     p.cover(C['book']['cover'],948,56,width=168,tag='main cover')
     cx,cy,r=540,720,344
     layer=Image.new('RGBA',p.im.size);d=ImageDraw.Draw(layer)
     for i in range(1,11):
-        rr=r*i/10; d.ellipse(xy((cx-rr,cy-rr,cx+rr,cy+rr)),outline=(255,255,255,26),width=2*S)
+        rr=r*i/10; d.ellipse(xy((cx-rr,cy-rr,cx+rr,cy+rr)),outline=(255,255,255,46),width=3*S)
     p.im=Image.alpha_composite(p.im.convert('RGBA'),layer).convert('RGB');p.d=ImageDraw.Draw(p.im)
     angles=[math.radians(-90+72*i) for i in range(5)]
     end=[(cx+r*math.cos(a),cy+r*math.sin(a)) for a in angles]
@@ -159,8 +218,8 @@ def score():
     for ex,ey in end:
         p.line([(cx,cy),(ex,ey)],width=2)
         p.d.ellipse(xy((ex-10,ey-10,ex+10,ey+10)),fill=WHITE)
-    p.line(points+[points[0]],width=3)
-    labels=[('解决问题\n层级',452,267,180),('行文与结构',890,590,185),('严谨程度',785,1015,180),('原创视角',269,1036,180),('值得复读',46,590,160)]
+    p.line(points+[points[0]],width=4)
+    labels=[('解决问题层级',444,297,230),('行文与结构',890,590,185),('严谨程度',785,1015,180),('原创视角',269,1036,180),('值得复读',46,590,160)]
     for t,x,y,w in labels:p.text(t,x,y,w,32,tag='axis label')
     for (x,y),v in zip([(518,477),(694,672),(608,824),(396,864),(342,665)],C['scores']):
         p.text(str(v),x,y,44,32,align='center',tag='axis score')
@@ -180,7 +239,7 @@ def score():
         p.d.polygon([xy(pt) for pt in [(x,top),(x+81,top-25),(x+81,1342),(x,1342)]],fill=WHITE if b in C['audience'] else muted)
         p.text(a,x+9,1270,70,26,fill='#607180',tag='audience alias')
         p.text(b,x+9,1305,70,26,fill=INK,tag='audience')
-    REPORT['checks'].append({'average':str(total),'scores':C['scores'],'rings':10,'ring_opacity':.1})
+    REPORT['checks'].append({'average':str(total),'scores':C['scores'],'rings':10,'ring_opacity':.18,'ring_width':3,'polygon_width':4,'intro_lines':used/42})
     p.save()
 
 if __name__=='__main__':

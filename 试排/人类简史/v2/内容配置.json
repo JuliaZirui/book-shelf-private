@@ -1,0 +1,14 @@
+{
+  "title": "人类简史",
+  "claim": "共同想象促成合作，三次革命重塑人类命运",
+  "background": "#005BAB",
+  "source": "Dropbox: 3_5人类简史 codex test / 2_文字部分.docx",
+  "source_checked": "2026-09-11",
+  "sections": [
+    {"title":"认知革命", "model":"多对一汇聚与协作网络", "claim":"共同想象促成陌生人大规模协作"},
+    {"title":"农业革命", "model":"群体与个体左右对照", "claim":"文明扩张未必改善个体生活"},
+    {"title":"科学革命", "model":"知识路径与增长机制", "claim":"观察实验拓展知识，投资劳动科技推动增长"},
+    {"title":"读后思考", "model":"两项并列反思", "claim":"增长不等于人人受益，制度也由人共同维系"}
+  ],
+  "notes": "本轮为内容专用试排，文案与几何位置在 scripts/render_content.py 中；复用 v1 的排版与边界检查基础，不是完整通用模板。"
+}

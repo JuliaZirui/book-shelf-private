@@ -1,4 +1,4 @@
 interface:
-  display_name: "图书自媒体"
-  short_description: "核验图书资料并生成打分图、citation阅读树与知识结构图"
-  default_prompt: "使用 $book-self-media 为我整理一本书并生成完整的自媒体内容素材。"
+  display_name: "理性拆书局三图"
+  short_description: "从读书笔记生成联想图、语义结构要点图与五维打分图"
+  default_prompt: "使用 $book-self-media 读取我的读书笔记和评分，先确认配色、关联书、要点图模型与简介，再制作三张海报。"
