@@ -1,4 +1,4 @@
 interface:
   display_name: "理性拆书局三图"
   short_description: "从读书笔记生成联想图、语义结构要点图与五维打分图"
-  default_prompt: "使用 $book-self-media 读取我的读书笔记和评分，先确认配色、关联书、要点图模型与简介，再制作三张海报。"
+  default_prompt: "使用 $book-self-media 读取我的读书笔记和评分，先让我选择联想图A错位放射、B共用主干或C弧线连接，并确认配色、关联书、要点图模型与简介，再制作三张海报。"
